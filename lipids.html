@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diet Detectives: The Lipid Files</title>
+<style>
+:root{--bg:#F3F6F9;--surface:#fff;--surface-2:#E9EFF4;--ink:#1C1C1E;--muted:#62666B;--line:#DADFE3;--navy:#1F3864;--teal:#0C9C98;--teal-soft:#D8F1EF;--teal-ink:#07615E;--gold:#E6A413;--gold-soft:#FBEFCF;--bad:#C8463E;--bad-soft:#F9E1DE;--good:#1D8F5F;--good-soft:#DDF3E8;
+--font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:17px;line-height:1.5}
+body{overflow-x:hidden}
+.wrap{max-width:860px;margin:0 auto;padding:0 16px 120px}
+header.top{position:sticky;top:0;z-index:20;background:var(--navy);color:#fff}
+header.top .in{max-width:860px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+header.top .brand{font-weight:700;letter-spacing:.2px}
+header.top .meta{margin-left:auto;display:flex;gap:14px;font-size:14px;opacity:.95;flex-wrap:wrap}
+.pill{background:rgba(255,255,255,.14);border-radius:99px;padding:2px 10px}
+.pill.warn{background:var(--bad)}
+.bar{height:4px;background:rgba(255,255,255,.2)}
+.bar i{display:block;height:100%;width:0;background:var(--teal);transition:width .3s}
+h1{font-size:30px;line-height:1.2;margin:28px 0 4px;color:var(--navy)}
+.sub{color:var(--muted);margin:0 0 18px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;margin:18px 0}
+.card h2{margin:0 0 12px;font-size:22px;color:var(--navy)}
+.card h3{margin:18px 0 6px;font-size:17px}
+.tag{display:inline-block;font-size:13px;font-weight:700;color:var(--teal-ink);background:var(--teal-soft);border-radius:99px;padding:2px 10px;margin-bottom:8px}
+table.file,table.data{width:100%;border-collapse:collapse;margin:6px 0 4px;font-size:16px}
+table.file td,table.data td,table.data th{border:1px solid var(--line);padding:8px 10px;vertical-align:top;text-align:left}
+table.file td:first-child{width:28%;background:var(--surface-2);font-weight:600}
+table.data th{background:var(--surface-2)}
+table.file ul{margin:0;padding-left:18px}
+.note{background:var(--gold-soft);border-left:4px solid var(--gold);padding:10px 12px;border-radius:8px;margin:12px 0;font-size:16px}
+.q{margin:18px 0 0}
+.q label{display:block;font-weight:600;margin-bottom:6px}
+.q .qn{color:var(--teal-ink);margin-right:4px}
+textarea,input[type=text],select{width:100%;font:inherit;font-size:16px;border:1px solid #C3CAD1;border-radius:10px;padding:10px 12px;background:#fff;color:var(--ink)}
+textarea{min-height:92px;resize:vertical}
+textarea:focus,input:focus,select:focus{outline:2px solid var(--teal);border-color:var(--teal)}
+textarea.done{border-color:var(--teal);background:#FBFEFE}
+table.rows{width:100%;border-collapse:collapse}
+table.rows td{border:1px solid var(--line);padding:6px;vertical-align:top}
+table.rows td:first-child{width:34%;background:var(--surface-2);font-weight:600;padding:8px 10px}
+table.rows textarea{min-height:60px;border:none;border-radius:6px}
+.btn{font:inherit;font-weight:700;border:0;border-radius:12px;padding:12px 20px;cursor:pointer;background:var(--teal);color:#fff}
+.btn.ghost{background:var(--surface-2);color:var(--ink)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:12px;flex-wrap:wrap}
+.row>div{flex:1 1 220px}
+.small{font-size:14px;color:var(--muted)}
+ul.rules{padding-left:20px;margin:6px 0}
+ul.rules li{margin:4px 0}
+.nosel,.case-text{-webkit-user-select:none;user-select:none}
+.locked textarea{pointer-events:none;background:#F1F3F5}
+#overlay{position:fixed;inset:0;z-index:50;background:rgba(15,25,45,.92);color:#fff;display:none;align-items:center;justify-content:center;padding:24px;text-align:center}
+#overlay .box{max-width:460px}
+#overlay h2{margin:0 0 10px;font-size:24px}
+#overlay p{margin:0 0 18px;opacity:.92}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:60;background:var(--bad);color:#fff;padding:12px 18px;border-radius:12px;font-weight:600;display:none;max-width:92vw;text-align:center}
+.save{font-size:13px}
+.submitbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.hidden{display:none!important}
+@media print{body{display:none}}
+</style>
+</head>
+<body oncontextmenu="return false">
+<header class="top">
+  <div class="in">
+    <span class="brand">Diet Detectives · Lipids</span>
+    <span class="meta"><span class="pill" id="who">Not started</span><span class="pill" id="prog">0 / 0</span><span class="pill" id="clock">0:00</span><span class="pill" id="exitp" title="Times you left the worksheet">Exits: 0</span><span class="pill save" id="saved">Not saved</span></span>
+  </div>
+  <div class="bar"><i id="barfill"></i></div>
+</header>
+
+<div class="wrap">
+  <h1>Diet Detectives: The Lipid Files</h1>
+  <p class="sub">Year 8 Science · Lipids · 40 minutes</p>
+
+  <section id="startcard" class="card">
+    <h2>Before you start</h2>
+    <div class="row">
+      <div><label for="sname"><b>Your full name</b></label><input type="text" id="sname" autocomplete="off" spellcheck="false" maxlength="60"></div>
+      <div><label for="scls"><b>Class</b></label><select id="scls"><option value="">Choose…</option><option>8C</option><option>8D</option><option>Other</option></select></div>
+    </div>
+    <h3>Playing fair</h3>
+    <ul class="rules">
+      <li>The worksheet runs in <b>full screen</b>. It stays that way until you submit.</li>
+      <li>Leaving it (switching tab, app, window or screen, or leaving full screen) counts as an <b>exit</b>. Every exit is recorded with the time and <b>your teacher sees all of them</b>.</li>
+      <li>From your <b>third exit</b>, your answer boxes lock for <b>3 minutes</b> each time you leave.</li>
+      <li>Copying and pasting are switched off. Type every answer yourself.</li>
+      <li>Your work saves automatically. Press <b>Submit</b> at the end of the lesson.</li>
+    </ul>
+    <p class="small" id="resume"></p>
+    <button class="btn" id="startbtn">Start in full screen</button>
+  </section>
+
+  <main id="sheet" class="hidden">
+    <section class="card"><h2>Your mission</h2>
+<p>Fats and oils (<b>lipids</b>) have a bad reputation. In these six files, some patients eat too much, some eat too little, and some eat the wrong kind. One case is not even a patient. Your job is to work out what is going on.</p>
+<p>Read each file carefully and answer every question in full sentences, using the science words from your lessons. Show your working for any calculation.</p>
+<p class="small">Aim for about 6 minutes per case. Finished early? Try the Bonus task.</p></section>
+    <div id="cases"></div>
+    <section class="card" id="submitcard">
+      <h2>Finished?</h2>
+      <p id="subinfo" class="small"></p>
+      <div class="submitbar"><button class="btn" id="subbtn">Submit my answers</button><span id="subres" class="small"></span></div>
+    </section>
+  </main>
+
+  <section id="donecard" class="card hidden">
+    <h2>Submitted</h2>
+    <p id="donetxt"></p>
+    <button class="btn ghost" id="reopen">Reopen and keep working</button>
+  </section>
+</div>
+
+<div id="overlay"><div class="box"><h2 id="ovt">Return to full screen</h2><p id="ovp">The worksheet is paused until you return to full screen.</p><button class="btn" id="ovb">Return to full screen</button></div></div>
+<div id="toast"></div>
+
+<script>
+(function(){
+'use strict';
+var DATA = {"version": "lipids", "cases": [{"id": "c1", "short": "Case 1", "tag": "Case 1", "title": "The Fried Breakfast Fan", "file": [["Patient", "Tony, 52"], ["Background", "Eats a full fried breakfast every day and rarely exercises. A blood test shows he has high cholesterol."], ["Symptoms", "<ul><li>Chest pain when he walks uphill</li><li>Gets out of breath quickly</li></ul>"], ["Food diary (a typical day)", "<ul><li><b>Breakfast:</b> Fried eggs, sausages, bacon, buttered toast</li><li><b>Lunch:</b> Cheese and ham pie</li><li><b>Dinner:</b> Lamb chops fried in butter, creamy sauce</li><li><b>Snacks and drinks:</b> Cream cakes</li></ul>"]], "note": "<b>Doctor’s note:</b> saturated fats come mostly from animal products and are solid at room temperature. Unsaturated fats come mostly from plants and fish and are liquid at room temperature.", "questions": [{"text": "Which <b>type</b> of lipid is Tony eating too much of? Give three foods from his diary as evidence."}, {"text": "Explain how this diet could lead to his chest pain.", "lines": 4}, {"text": "Suggest three <b>swaps</b>: replace a food high in saturated fat with a healthier choice. Explain one of them.", "lines": 4}]}, {"id": "c2", "short": "Case 2", "tag": "Case 2", "title": "The Fat-Free Dancer", "file": [["Patient", "Maya, 16"], ["Background", "A ballet dancer who has cut almost all fat from her diet because she believes all fat is unhealthy."], ["Symptoms", "<ul><li>Always feels cold</li><li>Runs out of energy in long rehearsals</li><li>Feels every knock and bump on her hips and ribs</li><li>Dry, flaky skin</li></ul>"], ["Food diary (a typical day)", "<ul><li><b>Breakfast:</b> Fat-free yoghurt with berries</li><li><b>Lunch:</b> Boiled vegetables and steamed white fish</li><li><b>Dinner:</b> Plain rice with steamed broccoli</li><li><b>Snacks and drinks:</b> Apple, rice cakes, diet cola</li></ul>"]], "questions": [{"text": "For each symptom, name the <b>job of lipids</b> in the body that is missing.", "rows": ["Always feels cold", "Runs out of energy in long rehearsals", "Feels every knock and bump", "Dry, flaky skin"]}, {"text": "Suggest three healthy lipid-rich foods Maya could add. Then explain why \"fat-free\" does not always mean \"healthy\".", "lines": 4}]}, {"id": "c3", "short": "Case 3", "tag": "Case 3", "title": "The Carrot Mystery", "file": [["Patient", "Jad, 12"], ["Background", "His parents put the whole family on a strict fat-free diet. Jad eats lots of carrots (rich in vitamin A) and drinks skimmed milk with added vitamin D."], ["Symptoms", "<ul><li>Struggles to see at night</li><li>Weak, aching bones</li></ul>"], ["Food diary (a typical day)", "<ul><li><b>Breakfast:</b> Fat-free cereal with skimmed milk</li><li><b>Lunch:</b> Carrot sticks, plain chicken breast, salad with no dressing</li><li><b>Dinner:</b> Boiled potatoes, carrots, steamed fish</li><li><b>Snacks and drinks:</b> Carrot juice, skimmed milk</li></ul>"]], "note": "<b>Lab note:</b> vitamins A, D, E and K are called <b>fat-soluble</b> vitamins.", "questions": [{"text": "Jad eats plenty of vitamin A and vitamin D, yet he shows the symptoms of lacking both. Use the lab note to explain why.", "lines": 4}, {"text": "Suggest one simple change to his lunch that would help. Explain how it works."}]}, {"id": "c4", "short": "Case 4", "tag": "Case 4", "title": "The Weekend Gamer", "file": [["Patient", "Rami, 29"], ["Background", "Has gained 12 kg in one year. Spends his weekends gaming, barely moves, and snacks on fried food."]], "before": "<p><b>Rami’s Saturday snacks</b></p>", "data": {"head": ["Snack", "Fat (g)"], "rows": [["Large bag of crisps", "20"], ["Four pieces of fried chicken", "40"], ["Two doughnuts", "24"]]}, "note": "<b>Lab data:</b> 1 g of fat releases about 37 kJ of energy. 1 g of carbohydrate or protein releases about 17 kJ. An average adult man needs about 10 500 kJ per day.", "questions": [{"text": "Calculate the total energy released by the fat in Rami’s snacks. Show your working.", "lines": 3}, {"text": "What percentage of his daily energy need comes from the fat in these snacks alone? Show your working.", "lines": 3}, {"text": "Use the lab data to explain why fatty foods make it easy to take in too much energy. What happens to the extra energy in Rami’s body?", "lines": 4}]}, {"id": "c5", "short": "Case 5", "tag": "Case 5", "title": "The Polar Expedition", "file": [["Mission", "A team of four explorers will ski across Antarctica for 30 days. Temperatures fall to −30 °C. They must pull all of their food behind them on sledges, so every gram counts."]], "data": {"head": ["Food", "Energy per 100 g (kJ)", "Main nutrient"], "rows": [["Butter", "3000", "Lipid"], ["Peanuts", "2400", "Lipid and protein"], ["Dark chocolate", "2300", "Lipid and carbohydrate"], ["Dried pasta", "1500", "Carbohydrate"], ["Dried fruit", "1200", "Carbohydrate"], ["Fresh apples", "220", "Carbohydrate and water"]]}, "questions": [{"text": "Which two foods should the team pack the most of? Use the data to justify your choice."}, {"text": "Give two reasons why lipid-rich foods suit this expedition."}, {"text": "Explain why packing <b>only</b> butter and peanuts would be a bad idea, even on this trip.", "lines": 4}]}, {"id": "c6", "short": "Case 6", "tag": "Case 6", "title": "The \"Fat-Free\" Cookie", "file": [["Suspect", "A snack company advertises its new cookies as \"100% fat-free\". A customer is suspicious and sends a cookie to the lab."], ["Test 1: emulsion test", "Crushed cookie was shaken with ethanol, then the liquid was poured into water. A <b>cloudy white layer</b> formed."], ["Test 2: grease spot test", "The cookie was rubbed on paper. It left a <b>see-through mark</b> that did not disappear when the paper dried."], ["Control", "A drop of water on the same paper dried with <b>no mark</b>."]], "questions": [{"text": "Is the company telling the truth? Use <b>both</b> test results in your answer.", "lines": 4}, {"text": "Why did the lab test a drop of water on the paper as well?"}, {"text": "Suggest one way to make the lab’s conclusion more reliable."}]}, {"id": "c7", "short": "Bonus", "tag": "Bonus task", "title": "Write Your Own Lipid Case", "questions": [{"text": "Write a patient file for a classmate to solve: background, symptoms and a food diary. The problem must be linked to lipids.", "lines": 6}, {"text": "Write the solution to your case.", "lines": 3}]}, {"id": "c8", "short": "Debrief", "tag": "Final 5 minutes", "title": "Debrief", "questions": [{"text": "\"All fat is bad for you.\" Do you agree? Use evidence from at least two cases.", "lines": 5}]}]};
+var ENDPOINT = 'https://script.google.com/macros/s/AKfycbyysplYW2i97OA-LiwcmbQjAIUhVl-GCvKVJ65mpLc6NF8b4kXmlr39RjWlU9Cf-vGmIw/exec';
+var KEY = 'dietdet.' + DATA.version + '.v1';
+var LOCK_AFTER = 3, LOCK_MS = 3*60*1000, MERGE_MS = 1500, GRACE_MS = 1000;
+
+var $ = function(id){ return document.getElementById(id); };
+var st = load() || {};
+if (!st.id) st.id = 'S' + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+st.answers = st.answers || {}; st.exitLog = st.exitLog || []; st.exits = st.exits || 0;
+st.bigInserts = st.bigInserts || 0; st.pasteTries = st.pasteTries || 0; st.elapsed = st.elapsed || 0;
+st.status = st.status || 'Not started';
+
+function load(){ try { return JSON.parse(localStorage.getItem(KEY)); } catch(e){ return null; } }
+function persist(){ try { localStorage.setItem(KEY, JSON.stringify(st)); } catch(e){} }
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+// ---------- Build the worksheet ----------
+var keys = [], labels = [];
+function qbox(id, label, text, lines){
+  keys.push(id); labels.push(label);
+  return '<div class="q"><label for="'+id+'">'+text+'</label>'+
+    '<textarea id="'+id+'" data-k="'+id+'" rows="'+(lines||3)+'" spellcheck="true" autocomplete="off" autocorrect="off" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false"></textarea></div>';
+}
+function build(){
+  var h = '';
+  DATA.cases.forEach(function(c, ci){
+    h += '<section class="card" id="'+c.id+'"><span class="tag">'+esc(c.tag)+'</span><h2>'+esc(c.title)+'</h2><div class="case-text">';
+    if (c.file) { h += '<table class="file">'; c.file.forEach(function(r){ h += '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>'; }); h += '</table>'; }
+    if (c.before) h += c.before;
+    if (c.data) { h += '<table class="data"><tr>'+c.data.head.map(function(x){return '<th>'+x+'</th>';}).join('')+'</tr>'+
+      c.data.rows.map(function(r){ return '<tr>'+r.map(function(x){return '<td>'+x+'</td>';}).join('')+'</tr>'; }).join('')+'</table>'; }
+    if (c.note) h += '<div class="note">'+c.note+'</div>';
+    h += '</div>';
+    c.questions.forEach(function(q, qi){
+      var base = c.id + 'q' + (qi+1), lab = c.short + ' Q' + (qi+1);
+      if (q.rows) {
+        h += '<div class="q"><label><span class="qn">Q'+(qi+1)+'</span> '+q.text+'</label><table class="rows">';
+        q.rows.forEach(function(rw, ri){
+          var id = base + String.fromCharCode(97+ri);
+          keys.push(id); labels.push(lab + String.fromCharCode(97+ri) + ' (' + rw.replace(/<[^>]+>/g,'') + ')');
+          h += '<tr><td>'+rw+'</td><td><textarea id="'+id+'" data-k="'+id+'" rows="2" spellcheck="true" autocomplete="off" data-gramm="false" data-enable-grammarly="false"></textarea></td></tr>';
+        });
+        h += '</table></div>';
+      } else {
+        h += qbox(base, lab, '<span class="qn">Q'+(qi+1)+'</span> '+q.text, q.lines);
+      }
+    });
+    h += '</section>';
+  });
+  $('cases').innerHTML = h;
+  var tas = document.querySelectorAll('#cases textarea');
+  tas.forEach(function(t){
+    t.value = st.answers[t.dataset.k] || '';
+    mark(t);
+    t.addEventListener('beforeinput', onBeforeInput);
+    t.addEventListener('input', onInput);
+    t.addEventListener('paste', blockPaste);
+    t.addEventListener('drop', blockPaste);
+  });
+}
+
+// ---------- Input guards ----------
+var lastLen = {};
+function onBeforeInput(e){
+  if (e.inputType === 'insertFromPaste' || e.inputType === 'insertFromDrop' || e.inputType === 'insertFromYank' || e.inputType === 'insertFromPasteAsQuotation') { e.preventDefault(); pasteTry(); return; }
+  if (e.data && e.data.length > 25) { st.bigInserts++; }
+}
+function onInput(e){
+  var t = e.target, k = t.dataset.k, prev = st.answers[k] || '';
+  if (t.value.length - prev.length > 40) st.bigInserts++;
+  st.answers[k] = t.value; mark(t); dirty = true; persist(); progress();
+}
+function blockPaste(e){ e.preventDefault(); pasteTry(); }
+function pasteTry(){ st.pasteTries++; persist(); toast('Pasting is switched off. Type your answer.'); dirty = true; }
+function mark(t){ t.classList.toggle('done', t.value.trim().length > 0); }
+
+['copy','cut','dragstart'].forEach(function(ev){ document.addEventListener(ev, function(e){ e.preventDefault(); }); });
+document.addEventListener('selectstart', function(e){ if (!(e.target && (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT'))) e.preventDefault(); });
+document.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+document.addEventListener('keydown', function(e){
+  if ((e.ctrlKey || e.metaKey) && /^[cxvaps]$/i.test(e.key)) {
+    e.preventDefault();
+    if (/^v$/i.test(e.key)) pasteTry();
+  }
+}, true);
+
+// ---------- Progress / clock ----------
+function progress(){
+  var done = keys.filter(function(k){ return (st.answers[k]||'').trim(); }).length;
+  $('prog').textContent = done + ' / ' + keys.length;
+  $('barfill').style.width = (keys.length ? 100*done/keys.length : 0) + '%';
+  $('subinfo').textContent = done === keys.length ? 'Every box has an answer. Check your work, then submit.' : (keys.length - done) + ' answer box' + (keys.length-done===1?' is':'es are') + ' still empty. You can still submit.';
+}
+var tickStart = null;
+function tick(){
+  if (live()) { st.elapsed += 1; if (st.elapsed % 5 === 0) persist(); }
+  var m = Math.floor(st.elapsed/60), s = st.elapsed % 60;
+  $('clock').textContent = m + ':' + (s<10?'0':'') + s;
+  lockCheck();
+}
+
+// ---------- Full screen + exits ----------
+var started = false, lastExit = 0, graceUntil = 0;
+function live(){ return started && st.status !== 'Submitted' && document.visibilityState === 'visible' && (fsOK() ? !!document.fullscreenElement : true); }
+function fsOK(){ return !!(document.documentElement.requestFullscreen); }
+function goFull(){
+  graceUntil = Date.now() + GRACE_MS;
+  if (fsOK()) { var p = document.documentElement.requestFullscreen(); if (p && p.catch) p.catch(function(){}); }
+}
+function exitEvent(kind){
+  if (!started || st.status === 'Submitted') return;
+  var now = Date.now();
+  if (now < graceUntil || now - lastExit < MERGE_MS) return;
+  lastExit = now;
+  st.exits++;
+  st.exitLog.push(new Date(now).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) + ' ' + kind);
+  if (st.exits >= LOCK_AFTER) st.lockUntil = now + LOCK_MS;
+  persist(); showExits(); push(true);
+  toast(st.exits >= LOCK_AFTER ? 'Exit ' + st.exits + ' recorded. Answer boxes are locked for 3 minutes.' : 'Exit ' + st.exits + ' recorded. Your teacher can see this.');
+}
+document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'hidden') exitEvent('left tab/app'); else overlayCheck(); });
+window.addEventListener('blur', function(){ setTimeout(function(){ if (!document.hasFocus()) exitEvent('window lost focus'); }, 50); });
+window.addEventListener('pagehide', function(){ exitEvent('closed/reloaded'); });
+document.addEventListener('fullscreenchange', function(){ if (!document.fullscreenElement) exitEvent('left full screen'); overlayCheck(); });
+
+function overlayCheck(){
+  var need = started && st.status !== 'Submitted' && fsOK() && !document.fullscreenElement;
+  $('overlay').style.display = need ? 'flex' : 'none';
+  if (need) { $('ovt').textContent = 'Return to full screen'; $('ovp').textContent = 'The worksheet is paused until you return to full screen. Exits so far: ' + st.exits + '.'; }
+}
+$('ovb').addEventListener('click', goFull);
+
+function lockCheck(){
+  var left = (st.lockUntil || 0) - Date.now();
+  var locked = left > 0 && st.status !== 'Submitted';
+  document.body.classList.toggle('locked', locked);
+  document.querySelectorAll('#cases textarea').forEach(function(t){ t.readOnly = locked; });
+  if (locked) {
+    var m = Math.floor(left/60000), s = Math.floor(left/1000)%60;
+    $('saved').textContent = 'Locked ' + m + ':' + (s<10?'0':'') + s;
+  }
+}
+function showExits(){ var p = $('exitp'); p.textContent = 'Exits: ' + st.exits; p.classList.toggle('warn', st.exits >= LOCK_AFTER); }
+
+// ---------- Saving to the sheet ----------
+var dirty = false, sending = false;
+function payload(){
+  return { action:'save', version: DATA.version, id: st.id, name: st.name, cls: st.cls, status: st.status,
+    started: st.startedAt, elapsed: st.elapsed, exits: st.exits, exitLog: st.exitLog.join(' | '),
+    bigInserts: st.bigInserts, pasteTries: st.pasteTries, keys: keys, labels: labels, answers: st.answers };
+}
+function push(urgent, cb){
+  if (!ENDPOINT || ENDPOINT.indexOf('http') !== 0) { cb && cb(false); return; }
+  if (sending && !urgent) return;
+  sending = true; dirty = false;
+  var body = JSON.stringify(payload());
+  try {
+    fetch(ENDPOINT, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: body, keepalive: body.length < 60000 })
+      .then(function(r){ return r.json(); })
+      .then(function(j){ sending = false; if (j && j.ok) { $('saved').textContent = 'Saved ' + new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}); cb && cb(true); } else { dirty = true; $('saved').textContent = 'Not saved'; cb && cb(false); } })
+      .catch(function(){ sending = false; dirty = true; $('saved').textContent = 'Offline: saved on this device'; cb && cb(false); });
+  } catch(e) { sending = false; dirty = true; cb && cb(false); }
+}
+setInterval(function(){ if (started && dirty) push(false); }, 30000);
+
+// ---------- Start / submit ----------
+function begin(){
+  started = true;
+  $('who').textContent = st.name + ' · ' + st.cls;
+  $('startcard').classList.add('hidden');
+  $('donecard').classList.add('hidden');
+  $('sheet').classList.remove('hidden');
+  showExits(); progress(); overlayCheck(); window.scrollTo(0,0);
+}
+$('startbtn').addEventListener('click', function(){
+  var n = $('sname').value.trim().replace(/\s+/g,' '), c = $('scls').value;
+  if (n.split(' ').length < 2 || n.length < 4) { toast('Type your first name and surname.'); return; }
+  if (!c) { toast('Choose your class.'); return; }
+  st.name = n; st.cls = c;
+  if (!st.startedAt) st.startedAt = new Date().toISOString();
+  if (st.status === 'Not started') st.status = 'In progress';
+  persist(); goFull(); begin(); push(true);
+});
+$('subbtn').addEventListener('click', function(){
+  var empty = keys.filter(function(k){ return !(st.answers[k]||'').trim(); }).length;
+  if (empty && !$('subbtn').dataset.sure) { $('subbtn').dataset.sure = '1'; $('subbtn').textContent = 'Submit anyway'; $('subres').textContent = empty + ' box' + (empty===1?' is':'es are') + ' still empty. Press again to submit anyway.'; setTimeout(function(){ delete $('subbtn').dataset.sure; $('subbtn').textContent = 'Submit my answers'; }, 8000); return; }
+  st.status = 'Submitted'; st.submittedAt = new Date().toISOString(); persist();
+  $('subbtn').disabled = true; $('subres').textContent = 'Sending…';
+  push(true, function(ok){
+    $('subbtn').disabled = false;
+    if (!ok) { st.status = 'In progress'; persist(); $('subres').textContent = 'Could not reach the server. Check your connection and press Submit again.'; return; }
+    $('subres').textContent = '';
+    $('sheet').classList.add('hidden'); $('donecard').classList.remove('hidden');
+    $('donetxt').textContent = 'Well done, ' + st.name.split(' ')[0] + '. Your answers were sent at ' + new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) + '. Exits recorded: ' + st.exits + '.';
+    overlayCheck();
+    if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function(){});
+  });
+});
+$('reopen').addEventListener('click', function(){ st.status = 'Reopened'; persist(); goFull(); begin(); push(true); });
+
+function toast(msg){ var t = $('toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(toast.h); toast.h = setTimeout(function(){ t.style.display = 'none'; }, 4000); }
+
+// ---------- Init ----------
+build();
+if (st.name) { $('sname').value = st.name; $('scls').value = st.cls || ''; $('resume').textContent = 'Welcome back. Your saved answers will reload when you press Start.'; $('startbtn').textContent = 'Continue in full screen'; }
+if (st.status === 'Submitted') { $('startcard').classList.add('hidden'); $('donecard').classList.remove('hidden'); $('donetxt').textContent = 'You already submitted this worksheet. Exits recorded: ' + st.exits + '.'; }
+showExits(); progress(); tick(); setInterval(tick, 1000);
+window.__dd = { st: st, keys: keys, labels: labels, payload: payload };
+})();
+</script>
+</body>
+</html>
