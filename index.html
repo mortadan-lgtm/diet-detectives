@@ -281,12 +281,12 @@ function push(urgent, cb, beacon){
   var to = setTimeout(function(){ if (ctl) ctl.abort(); }, 25000);
   try {
     fetch(ENDPOINT, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: body, signal: ctl ? ctl.signal : undefined })
-      .then(function(r){ clearTimeout(to); return r.json(); })
-      .then(function(j){ sending = false; if (j && j.ok) { $('saved').textContent = 'Saved ' + new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}); cb && cb(true); } else { dirty = true; $('saved').textContent = 'Not saved'; cb && cb(false); } })
-      .catch(function(){ sending = false; dirty = true; $('saved').textContent = 'Offline: saved on this device'; cb && cb(false); });
+      .then(function(r){ return r.json(); })
+      .then(function(j){ clearTimeout(to); sending = false; if (j && j.ok) { $('saved').textContent = 'Saved ' + new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}); cb && cb(true); } else { dirty = true; $('saved').textContent = 'Not saved'; cb && cb(false); } })
+      .catch(function(){ clearTimeout(to); sending = false; dirty = true; $('saved').textContent = 'Offline: saved on this device'; cb && cb(false); });
   } catch(e) { sending = false; dirty = true; cb && cb(false); }
 }
-setInterval(function(){ if (started && dirty) push(false); }, 30000);
+setTimeout(function(){ setInterval(function(){ if (started && dirty && st.status !== 'Submitted') push(false); }, 45000); }, Math.floor(Math.random()*45000));
 
 // ---------- Start / submit ----------
 function begin(){
@@ -309,29 +309,35 @@ $('startbtn').addEventListener('click', function(){
 $('subbtn').addEventListener('click', function(){
   var empty = keys.filter(function(k){ return !(st.answers[k]||'').trim(); }).length;
   if (empty && !$('subbtn').dataset.sure) { $('subbtn').dataset.sure = '1'; $('subbtn').textContent = 'Submit anyway'; $('subres').textContent = empty + ' box' + (empty===1?' is':'es are') + ' still empty. Press again to submit anyway.'; setTimeout(function(){ delete $('subbtn').dataset.sure; $('subbtn').textContent = 'Submit my answers'; }, 8000); return; }
-  var prevStatus = st.status;
-  st.status = 'Submitted'; st.submittedAt = new Date().toISOString();
-  $('subbtn').disabled = true; $('subres').textContent = 'Sending… this can take up to 10 seconds.';
-  push(true, function(ok){
-    $('subbtn').disabled = false;
-    if (!ok) { st.status = prevStatus === 'Submitted' ? 'In progress' : prevStatus; persist(); $('subres').textContent = 'Could not reach the server. Check your connection and press Submit again.'; return; }
-    st.confirmed = true; persist();
-    $('subres').textContent = '';
-    $('sheet').classList.add('hidden'); $('donecard').classList.remove('hidden');
-    $('donetxt').textContent = 'Well done, ' + st.name.split(' ')[0] + '. Your answers were sent at ' + new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) + '. Exits recorded: ' + st.exits + '.';
-    overlayCheck();
-    if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function(){});
-  });
+  st.status = 'Submitted'; st.submittedAt = new Date().toISOString(); st.pending = true; st.confirmed = false; persist();
+  showDone();
+  if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function(){});
+  sendPending();
 });
-$('reopen').addEventListener('click', function(){ st.status = 'Reopened'; st.confirmed = false; persist(); goFull(); begin(); push(true); });
+function showDone(){
+  $('startcard').classList.add('hidden'); $('sheet').classList.add('hidden'); $('donecard').classList.remove('hidden');
+  var t = new Date(st.submittedAt || Date.now()).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  $('donetxt').textContent = 'Well done, ' + (st.name||'').split(' ')[0] + '. You submitted at ' + t + '. Exits recorded: ' + st.exits + '. ' +
+    (st.confirmed ? 'Your teacher has received your answers.' : 'Sending to your teacher… keep this page open for a moment.');
+  overlayCheck();
+}
+var retryT = null;
+function sendPending(){
+  clearTimeout(retryT);
+  push(true, function(ok){
+    if (ok) { st.pending = false; st.confirmed = true; persist(); showDone(); }
+    else { retryT = setTimeout(sendPending, 8000); }
+  });
+}
+$('reopen').addEventListener('click', function(){ st.status = 'Reopened'; st.confirmed = false; st.pending = false; clearTimeout(retryT); persist(); goFull(); begin(); push(true); });
 
 function toast(msg){ var t = $('toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(toast.h); toast.h = setTimeout(function(){ t.style.display = 'none'; }, 4000); }
 
 // ---------- Init ----------
-if (st.status === 'Submitted' && !st.confirmed) { st.status = 'In progress'; persist(); }
+if (st.status === 'Submitted' && !st.confirmed) { st.pending = true; persist(); }
 build();
 if (st.name) { $('sname').value = st.name; $('scls').value = st.cls || ''; $('resume').textContent = 'Welcome back. Your saved answers will reload when you press Start.'; $('startbtn').textContent = 'Continue in full screen'; }
-if (st.status === 'Submitted') { $('startcard').classList.add('hidden'); $('donecard').classList.remove('hidden'); $('donetxt').textContent = 'You already submitted this worksheet. Exits recorded: ' + st.exits + '.'; }
+if (st.status === 'Submitted') { started = true; showDone(); if (st.pending) sendPending(); }
 showExits(); progress(); tick(); setInterval(tick, 1000);
 window.__dd = { st: st, keys: keys, labels: labels, payload: payload };
 })();
