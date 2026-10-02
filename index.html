@@ -242,7 +242,7 @@ function exitEvent(kind){
 }
 document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'hidden') exitEvent('left tab/app'); else overlayCheck(); });
 window.addEventListener('blur', function(){ setTimeout(function(){ if (!document.hasFocus()) exitEvent('window lost focus'); }, 50); });
-window.addEventListener('pagehide', function(){ exitEvent('closed/reloaded'); });
+window.addEventListener('pagehide', function(){ exitEvent('closed/reloaded'); if (started) push(true, null, true); });
 document.addEventListener('fullscreenchange', function(){ if (!document.fullscreenElement) exitEvent('left full screen'); overlayCheck(); });
 
 function overlayCheck(){
@@ -271,14 +271,17 @@ function payload(){
     started: st.startedAt, elapsed: st.elapsed, exits: st.exits, exitLog: st.exitLog.join(' | '),
     bigInserts: st.bigInserts, pasteTries: st.pasteTries, keys: keys, labels: labels, answers: st.answers };
 }
-function push(urgent, cb){
+function push(urgent, cb, beacon){
   if (!ENDPOINT || ENDPOINT.indexOf('http') !== 0) { cb && cb(false); return; }
   if (sending && !urgent) return;
   sending = true; dirty = false;
   var body = JSON.stringify(payload());
+  if (beacon && navigator.sendBeacon) { try { navigator.sendBeacon(ENDPOINT, new Blob([body], {type:'text/plain;charset=utf-8'})); } catch(e){} sending = false; return; }
+  var ctl = window.AbortController ? new AbortController() : null;
+  var to = setTimeout(function(){ if (ctl) ctl.abort(); }, 25000);
   try {
-    fetch(ENDPOINT, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: body, keepalive: body.length < 60000 })
-      .then(function(r){ return r.json(); })
+    fetch(ENDPOINT, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: body, signal: ctl ? ctl.signal : undefined })
+      .then(function(r){ clearTimeout(to); return r.json(); })
       .then(function(j){ sending = false; if (j && j.ok) { $('saved').textContent = 'Saved ' + new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}); cb && cb(true); } else { dirty = true; $('saved').textContent = 'Not saved'; cb && cb(false); } })
       .catch(function(){ sending = false; dirty = true; $('saved').textContent = 'Offline: saved on this device'; cb && cb(false); });
   } catch(e) { sending = false; dirty = true; cb && cb(false); }
@@ -306,11 +309,13 @@ $('startbtn').addEventListener('click', function(){
 $('subbtn').addEventListener('click', function(){
   var empty = keys.filter(function(k){ return !(st.answers[k]||'').trim(); }).length;
   if (empty && !$('subbtn').dataset.sure) { $('subbtn').dataset.sure = '1'; $('subbtn').textContent = 'Submit anyway'; $('subres').textContent = empty + ' box' + (empty===1?' is':'es are') + ' still empty. Press again to submit anyway.'; setTimeout(function(){ delete $('subbtn').dataset.sure; $('subbtn').textContent = 'Submit my answers'; }, 8000); return; }
-  st.status = 'Submitted'; st.submittedAt = new Date().toISOString(); persist();
-  $('subbtn').disabled = true; $('subres').textContent = 'Sending…';
+  var prevStatus = st.status;
+  st.status = 'Submitted'; st.submittedAt = new Date().toISOString();
+  $('subbtn').disabled = true; $('subres').textContent = 'Sending… this can take up to 10 seconds.';
   push(true, function(ok){
     $('subbtn').disabled = false;
-    if (!ok) { st.status = 'In progress'; persist(); $('subres').textContent = 'Could not reach the server. Check your connection and press Submit again.'; return; }
+    if (!ok) { st.status = prevStatus === 'Submitted' ? 'In progress' : prevStatus; persist(); $('subres').textContent = 'Could not reach the server. Check your connection and press Submit again.'; return; }
+    st.confirmed = true; persist();
     $('subres').textContent = '';
     $('sheet').classList.add('hidden'); $('donecard').classList.remove('hidden');
     $('donetxt').textContent = 'Well done, ' + st.name.split(' ')[0] + '. Your answers were sent at ' + new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) + '. Exits recorded: ' + st.exits + '.';
@@ -318,11 +323,12 @@ $('subbtn').addEventListener('click', function(){
     if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function(){});
   });
 });
-$('reopen').addEventListener('click', function(){ st.status = 'Reopened'; persist(); goFull(); begin(); push(true); });
+$('reopen').addEventListener('click', function(){ st.status = 'Reopened'; st.confirmed = false; persist(); goFull(); begin(); push(true); });
 
 function toast(msg){ var t = $('toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(toast.h); toast.h = setTimeout(function(){ t.style.display = 'none'; }, 4000); }
 
 // ---------- Init ----------
+if (st.status === 'Submitted' && !st.confirmed) { st.status = 'In progress'; persist(); }
 build();
 if (st.name) { $('sname').value = st.name; $('scls').value = st.cls || ''; $('resume').textContent = 'Welcome back. Your saved answers will reload when you press Start.'; $('startbtn').textContent = 'Continue in full screen'; }
 if (st.status === 'Submitted') { $('startcard').classList.add('hidden'); $('donecard').classList.remove('hidden'); $('donetxt').textContent = 'You already submitted this worksheet. Exits recorded: ' + st.exits + '.'; }
